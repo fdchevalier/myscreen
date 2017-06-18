@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.0
+# Version: 0.1
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in:
+# Modified in: 2015-08-13
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.1 - 2015-08-13: session renaming option added / first question corrected
 # v0.0 - 2015-08-10: creation
 
 version=$(grep -m 1 -i "version" "$0" | cut -d ":" -f 2 | sed "s/ * //g")
@@ -33,14 +34,15 @@ version=$(grep -m 1 -i "version" "$0" | cut -d ":" -f 2 | sed "s/ * //g")
 # Usage message
 function usage {
     echo -e "
-    \e[32m ${0##*/} \e[00m -h|--help
+    \e[32m ${0##*/} \e[00m -r|--rnm -h|--help
 
 Aim: $aim
 
 Version: $version
 
 Options:
-    -h, --help      this message
+    -r, --rnm   rename a specified session
+    -h, --help  this message
     "
 }
 
@@ -112,6 +114,7 @@ test_dep screen
 while [[ $# -gt 0 ]]
 do
     case $1 in
+        -r|--rnm    ) rnm="1" ; shift 1 ;;
         -h|--help   ) usage ; exit 0 ;;
         *           ) error "Invalid option: $1\n$(usage)" 1 ;;
     esac
@@ -140,7 +143,7 @@ done
 
 
 # Ask session number
-echo -e "\nWhat file has to be $action? [0 or enter = escape]"
+echo -e "\nWhat session do you want to select? [0 or enter = escape]"
 read response
 
 
@@ -157,14 +160,26 @@ fi
 
 if [[ $response -lt 0 || $response -gt $session_nb ]]
 then
-    error "You have requested a session non listed. Exiting..." 1
+    error "You have requested a session not listed. Exiting..." 1
 fi
 
 
-# Start session requested
+# Select session requested
 session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed -n "${response}p" | sed "s/\t/ /g" | cut -d " " -f 2) # Select the session
 
-screen -r "$session"
+if [[ -n "$rnm" ]]
+then
+    echo -e "\nWhat name do you want to give to this session? [enter = escape]"
+    read name
+
+    # If nothing, escape
+    [[ -z $name ]] && exit 0
+
+    # Rename session (source: http://superuser.com/a/370553)
+    screen -S "$session" -X sessionname "$name"
+else
+    screen -d -r "$session"
+fi
 
 
 exit 0
