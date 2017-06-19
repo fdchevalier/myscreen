@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.2
+# Version: 0.3
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in: 2015-08-16
+# Modified in: 2016-02-16
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.3 - 2016-02-16: -s 
 # v0.2 - 2015-08-16: check for sty-updater.sh presence / warning message when renaming
 # v0.1 - 2015-08-13: session renaming option added / first question corrected
 # v0.0 - 2015-08-10: creation
@@ -35,15 +36,16 @@ version=$(grep -m 1 -i "version" "$0" | cut -d ":" -f 2 | sed "s/ * //g")
 # Usage message
 function usage {
     echo -e "
-    \e[32m ${0##*/} \e[00m -r|--rnm -h|--help
+    \e[32m ${0##*/} \e[00m -s|--session number -r|--rnm -h|--help
 
 Aim: $aim
 
 Version: $version
 
 Options:
-    -r, --rnm   rename a specified session. \e[33mAttention:\e[00m This option requires the sty-updater.sh script to individually update the STY variable.
-    -h, --help  this message
+    -s, --session   number of the session to attached (avoid printing list if number session is known). \e[31mIncompatible with -r.\e[00m
+    -r, --rnm       rename a specified session. \e[33mAttention:\e[00m This option requires the sty-updater.sh script to individually update the STY variable.
+    -h, --help      this message
     "
 }
 
@@ -115,9 +117,10 @@ test_dep screen
 while [[ $# -gt 0 ]]
 do
     case $1 in
-        -r|--rnm    ) rnm="1" ; shift 1 ;;
-        -h|--help   ) usage ; exit 0 ;;
-        *           ) error "Invalid option: $1\n$(usage)" 1 ;;
+        -s|--session ) response=$2 ; sn=1 ; shift 2;;
+        -r|--rnm     ) rnm="1" ; shift 1 ;;
+        -h|--help    ) usage ; exit 0 ;;
+        *            ) error "Invalid option: $1\n$(usage)" 1 ;;
     esac
 done
 
@@ -134,34 +137,22 @@ then
     exit 0
 fi
 
-# Test if sty-updater function exists
-if [[ ! $(grep "sty-updater.*{" "$HOME"/.bash*) ]]
-then
-    warning "The sty-updater function is missing from you .bashrc or .bash_profile. You will not be able to create new window in the renamed screen session unless you update manually the STY variable. Do you still want to rename a session? [Y/n]"
-    read answer
-    [[ -z $answer ]] && answer=y
-
-    case $answer in
-        [y]|[yes] ) ;;
-        [n]|[no]  ) exit 0 ;;
-        *     ) exit 1 ;;
-    esac
-
-    unset answer
-fi
-
-# List sessions
+# List sessions if -s not used
 session_nb=$(screen -list | grep "^.*[0-9]" | head -n -1 | wc -l)
-for i in $(seq "$session_nb")
-do
-    session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed -n "${i}p")
-    echo -e "\t[$i] - $session"
-done
+if [[ -z "$sn" ]]
+then
+    echo ""
+    for i in $(seq "$session_nb")
+    do
+        session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed -n "${i}p")
+        echo -e "\t[$i] - $session"
+    done
 
 
-# Ask session number
-echo -e "\nWhat session do you want to select? [0 or enter = escape]"
-read response
+    # Ask session number
+    echo -e "\nWhat session do you want to select? [0 or enter = escape]"
+    read response
+fi
 
 
 # Check if the number correspond to the criteria
@@ -184,8 +175,27 @@ fi
 # Select session requested
 session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed -n "${response}p" | sed "s/\t/ /g" | cut -d " " -f 2) # Select the session
 
+
+# Rename session
 if [[ -n "$rnm" ]]
 then
+    
+    # Test if sty-updater function exists
+    if [[ ! $(typeset -F | grep sty-updater) ]]
+    then
+        warning "The sty-updater function is missing from your environment. You will not be able to create new window in the renamed screen session unless you update manually the STY variable. Do you still want to rename a session? [Y/n]"
+        read answer
+        [[ -z $answer ]] && answer=y
+
+        case $answer in
+            Y|y|yes ) ;;
+            N|n|no  ) exit 0 ;;
+            *       ) exit 1 ;;
+        esac
+
+        unset answer
+    fi
+
     echo -e "\nWhat name do you want to give to this session? [enter = escape]"
     read name
 
