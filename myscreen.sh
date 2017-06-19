@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.3
+# Version: 0.4
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in: 2016-02-16
+# Modified in: 2016-08-12
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.4 - 2016-08-12: list display improved
 # v0.3 - 2016-02-16: -s 
 # v0.2 - 2015-08-16: check for sty-updater.sh presence / warning message when renaming
 # v0.1 - 2015-08-13: session renaming option added / first question corrected
@@ -144,7 +145,7 @@ then
     echo ""
     for i in $(seq "$session_nb")
     do
-        session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed -n "${i}p")
+        session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed "s/\t/\`/g ; s/\`//" | column -s "\`" -t | sed -n "${i}p")
         echo -e "\t[$i] - $session"
     done
 
