@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.1
+# Version: 0.2
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in: 2015-08-13
+# Modified in: 2015-08-16
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.2 - 2015-08-16: check for sty-updater.sh presence / warning message when renaming
 # v0.1 - 2015-08-13: session renaming option added / first question corrected
 # v0.0 - 2015-08-10: creation
 
@@ -41,7 +42,7 @@ Aim: $aim
 Version: $version
 
 Options:
-    -r, --rnm   rename a specified session
+    -r, --rnm   rename a specified session. \e[33mAttention:\e[00m This option requires the sty-updater.sh script to individually update the STY variable.
     -h, --help  this message
     "
 }
@@ -133,6 +134,22 @@ then
     exit 0
 fi
 
+# Test if sty-updater function exists
+if [[ ! $(grep "sty-updater.*{" "$HOME"/.bash*) ]]
+then
+    warning "The sty-updater function is missing from you .bashrc or .bash_profile. You will not be able to create new window in the renamed screen session unless you update manually the STY variable. Do you still want to rename a session? [Y/n]"
+    read answer
+    [[ -z $answer ]] && answer=y
+
+    case $answer in
+        [y]|[yes] ) ;;
+        [n]|[no]  ) exit 0 ;;
+        *     ) exit 1 ;;
+    esac
+
+    unset answer
+fi
+
 # List sessions
 session_nb=$(screen -list | grep "^.*[0-9]" | head -n -1 | wc -l)
 for i in $(seq "$session_nb")
@@ -177,6 +194,10 @@ then
 
     # Rename session (source: http://superuser.com/a/370553)
     screen -S "$session" -X sessionname "$name"
+
+    # Warning message
+    echo ""
+    warning "If you want to create a new window in the renamed session, you need to run the sty-updater before creating it."
 else
     screen -d -r "$session"
 fi
