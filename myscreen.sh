@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.4
+# Version: 0.5
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in: 2016-08-12
+# Modified in: 2016-12-21
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.5 - 2016-12-21: sort list session by number / load automatically the session when there is only one / detection of sty-updater function improved
 # v0.4 - 2016-08-12: list display improved
 # v0.3 - 2016-02-16: -s 
 # v0.2 - 2015-08-16: check for sty-updater.sh presence / warning message when renaming
@@ -138,25 +139,38 @@ then
     exit 0
 fi
 
+
+# Get info about sessions
+session_list=$(screen -list | grep "^.*[0-9]" | head -n -1 | sort -k1n)
+session_nb=$(echo "$session_list" | wc -l)
+
+
 # List sessions if -s not used
-session_nb=$(screen -list | grep "^.*[0-9]" | head -n -1 | wc -l)
 if [[ -z "$sn" ]]
 then
     echo ""
     for i in $(seq "$session_nb")
     do
-        session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed "s/\t/\`/g ; s/\`//" | column -s "\`" -t | sed -n "${i}p")
+        session=$(echo "$session_list" | sed "s/\t/\`/g ; s/\`//" | column -s "\`" -t | sed -n "${i}p")
         echo -e "\t[$i] - $session"
     done
 
 
-    # Ask session number
-    echo -e "\nWhat session do you want to select? [0 or enter = escape]"
-    read response
+    # Ask session number if more than one
+    echo ""
+    if [[ "$session_nb" -gt 1 || -n "$rnm" ]]
+    then
+        echo "What session do you want to select? [0 or enter = escape]"
+        read response
+    else
+        info "The only active session will be load in 3 seconds."
+        response=1
+        sleep 3s
+    fi
 fi
 
 
-# Check if the number correspond to the criteria
+# Check if the number corresponds to the criteria
 if [[ -z $response || $response == 0 ]]
 then
     exit 0
@@ -174,7 +188,7 @@ fi
 
 
 # Select session requested
-session=$(screen -list | grep "^.*[0-9]" | head -n -1 | sed -n "${response}p" | sed "s/\t/ /g" | cut -d " " -f 2) # Select the session
+session=$(echo "$session_list" | sed -n "${response}p" | sed "s/\t/ /g" | cut -d " " -f 2) # Select the session
 
 
 # Rename session
@@ -182,8 +196,9 @@ if [[ -n "$rnm" ]]
 then
     
     # Test if sty-updater function exists
-    if [[ ! $(typeset -F | grep sty-updater) ]]
+    if [[ ! $(bash -i -c 'typeset -F' | grep sty-updater0) ]]
     then
+        echo ""
         warning "The sty-updater function is missing from your environment. You will not be able to create new window in the renamed screen session unless you update manually the STY variable. Do you still want to rename a session? [Y/n]"
         read answer
         [[ -z $answer ]] && answer=y
