@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.5
+# Version: 0.6
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in: 2016-12-21
+# Modified in: 2021-05-15
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.6 - 2021-05-15: sort list session by name by default / improve list formatting
 # v0.5 - 2016-12-21: sort list session by number / load automatically the session when there is only one / detection of sty-updater function improved
 # v0.4 - 2016-08-12: list display improved
 # v0.3 - 2016-02-16: -s 
@@ -38,7 +39,7 @@ version=$(grep -m 1 -i "version" "$0" | cut -d ":" -f 2 | sed "s/ * //g")
 # Usage message
 function usage {
     echo -e "
-    \e[32m ${0##*/} \e[00m -s|--session number -r|--rnm -h|--help
+    \e[32m ${0##*/} \e[00m -s|--session number -p|--pid -r|--rnm -h|--help
 
 Aim: $aim
 
@@ -46,6 +47,7 @@ Version: $version
 
 Options:
     -s, --session   number of the session to attached (avoid printing list if number session is known). \e[31mIncompatible with -r.\e[00m
+    -p, --pid       sort session list by process ID [default: by session name]
     -r, --rnm       rename a specified session. \e[33mAttention:\e[00m This option requires the sty-updater.sh script to individually update the STY variable.
     -h, --help      this message
     "
@@ -120,6 +122,7 @@ while [[ $# -gt 0 ]]
 do
     case $1 in
         -s|--session ) response=$2 ; sn=1 ; shift 2;;
+        -p|--pid     ) pid="pid" ; shift 1 ;;
         -r|--rnm     ) rnm="1" ; shift 1 ;;
         -h|--help    ) usage ; exit 0 ;;
         *            ) error "Invalid option: $1\n$(usage)" 1 ;;
@@ -141,7 +144,12 @@ fi
 
 
 # Get info about sessions
-session_list=$(screen -list | grep "^.*[0-9]" | head -n -1 | sort -k1n)
+if [[ -n "$pid" ]]
+then
+    session_list=$(screen -list | grep "^.*[0-9]" | head -n -1 | sort -k1n)
+else
+    session_list=$(screen -list | grep "^.*[0-9]" | head -n -1 | sort -t . -k2)
+fi
 session_nb=$(echo "$session_list" | wc -l)
 
 
@@ -151,7 +159,7 @@ then
     echo ""
     for i in $(seq "$session_nb")
     do
-        session=$(echo "$session_list" | sed "s/\t/\`/g ; s/\`//" | column -s "\`" -t | sed -n "${i}p")
+        session=$(echo "$session_list" | sed "s/\t/\`/g ; s/\`//" | column -s "." -t | column -s "\`" -t | sed -n "${i}p")
         echo -e "\t[$i] - $session"
     done
 
