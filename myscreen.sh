@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.6
+# Version: 0.7
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in: 2021-05-15
+# Modified in: 2021-08-31
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.7 - 2021-08-31: correct bug preventing to access sessions >= 10 / improve list formatting
 # v0.6 - 2021-05-15: sort list session by name by default / improve list formatting
 # v0.5 - 2016-12-21: sort list session by number / load automatically the session when there is only one / detection of sty-updater function improved
 # v0.4 - 2016-08-12: list display improved
@@ -157,7 +158,7 @@ session_nb=$(echo "$session_list" | wc -l)
 if [[ -z "$sn" ]]
 then
     echo ""
-    for i in $(seq "$session_nb")
+    for i in $(seq -w "$session_nb")
     do
         session=$(echo "$session_list" | sed "s/\t/\`/g ; s/\`//" | column -s "." -t | column -s "\`" -t | sed -n "${i}p")
         echo -e "\t[$i] - $session"
@@ -166,7 +167,7 @@ then
 
     # Ask session number if more than one
     echo ""
-    if [[ "$session_nb" -gt 1 || -n "$rnm" ]]
+    if [[ 10#"$session_nb" -gt 1 || -n "$rnm" ]]
     then
         echo "What session do you want to select? [0 or enter = escape]"
         read response
@@ -184,12 +185,12 @@ then
     exit 0
 fi
 
-if [[ ! $(echo $response | grep -x [[:digit:]]) ]]
+if [[ ! $(echo $response | grep -x [[:digit:]]*) ]]
 then
     error "You did not enter an integer. Exiting..." 1
 fi
 
-if [[ $response -lt 0 || $response -gt $session_nb ]]
+if [[ 10#$response -lt 0 || 10#$response -gt 10#$session_nb ]]
 then
     error "You have requested a session not listed. Exiting..." 1
 fi
