@@ -1,9 +1,9 @@
 #!/bin/bash
 # Title: myscreen.sh
-# Version: 0.7
+# Version: 0.8
 # Author: Frédéric CHEVALIER <fcheval@txbiomed.org>
 # Created in: 2015-08-10
-# Modified in: 2021-08-31
+# Modified in: 2022-04-06
 # Licence : GPL v3
 
 
@@ -20,6 +20,7 @@ aim="List screen sessions available and start it."
 # Versions #
 #==========#
 
+# v0.8 - 2022-04-09: correct bug when selecting session with a numbered folder in current directory
 # v0.7 - 2021-08-31: correct bug preventing to access sessions >= 10 / improve list formatting
 # v0.6 - 2021-05-15: sort list session by name by default / improve list formatting
 # v0.5 - 2016-12-21: sort list session by number / load automatically the session when there is only one / detection of sty-updater function improved
@@ -185,7 +186,7 @@ then
     exit 0
 fi
 
-if [[ ! $(echo $response | grep -x [[:digit:]]*) ]]
+if [[ ! $(echo $response | grep -x "[[:digit:]]*") ]]
 then
     error "You did not enter an integer. Exiting..." 1
 fi
